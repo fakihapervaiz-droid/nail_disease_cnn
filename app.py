@@ -2,21 +2,23 @@ import streamlit as st
 import tensorflow as tf
 import numpy as np
 from PIL import Image
+import pandas as pd
 
 
 # =========================================================
-# PAGE CONFIG
+# PAGE CONFIGURATION
 # =========================================================
 
 st.set_page_config(
-    page_title="Nail Disease AI Classifier",
+    page_title="NailCare AI | Nail Disease Classifier",
     page_icon="🩺",
-    layout="centered"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 
 # =========================================================
-# SETTINGS
+# MODEL SETTINGS
 # =========================================================
 
 MODEL_PATH = "nail_disease_simple_cnn.keras"
@@ -24,9 +26,13 @@ MODEL_PATH = "nail_disease_simple_cnn.keras"
 IMG_SIZE = 224
 
 # ---------------------------------------------------------
-# PUT YOUR ACTUAL TEST ACCURACY HERE
+# IMPORTANT:
+# Replace 0.00 with your ACTUAL Simple CNN test accuracy.
+#
 # Example:
-# If your test accuracy is 82.45%, write 0.8245
+# If your test accuracy = 82.45%
+# write:
+# MODEL_ACCURACY = 0.8245
 # ---------------------------------------------------------
 
 MODEL_ACCURACY = 0.00
@@ -54,63 +60,134 @@ st.markdown(
     """
     <style>
 
+    /* -------------------------------------------------
+       GENERAL
+    ------------------------------------------------- */
+
     .main {
+        padding-top: 1rem;
+    }
+
+    .block-container {
+        max-width: 1150px;
         padding-top: 2rem;
+        padding-bottom: 3rem;
     }
 
-    .title {
+
+    /* -------------------------------------------------
+       HEADER
+    ------------------------------------------------- */
+
+    .hero {
         text-align: center;
-        font-size: 38px;
-        font-weight: 700;
-        margin-bottom: 5px;
+        padding: 20px 10px 35px 10px;
     }
 
-    .subtitle {
-        text-align: center;
-        color: #666;
-        font-size: 17px;
-        margin-bottom: 30px;
+    .hero-title {
+        font-size: 46px;
+        font-weight: 750;
+        letter-spacing: -1px;
+        margin-bottom: 8px;
     }
 
-    .prediction-box {
-        padding: 22px;
-        border-radius: 12px;
-        background-color: #eef6ff;
-        border: 1px solid #b9d9ff;
-        text-align: center;
-        margin-top: 20px;
-        margin-bottom: 25px;
-    }
-
-    .prediction-title {
-        font-size: 15px;
-        color: #555;
-    }
-
-    .prediction-name {
-        font-size: 30px;
-        font-weight: 700;
-        margin: 8px 0;
-    }
-
-    .confidence {
+    .hero-subtitle {
         font-size: 18px;
-        font-weight: 600;
+        color: #6b7280;
+        max-width: 720px;
+        margin: auto;
+        line-height: 1.6;
     }
 
-    .accuracy-box {
-        padding: 18px;
-        border-radius: 10px;
-        background-color: #f5f5f5;
+
+    /* -------------------------------------------------
+       INFO CARDS
+    ------------------------------------------------- */
+
+    .info-card {
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 20px;
         text-align: center;
-        margin-bottom: 25px;
+        min-height: 115px;
     }
 
-    .info-box {
-        padding: 15px;
-        border-radius: 10px;
-        background-color: #f8f8f8;
-        margin-top: 20px;
+    .info-label {
+        color: #6b7280;
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .info-value {
+        font-size: 25px;
+        font-weight: 700;
+    }
+
+
+    /* -------------------------------------------------
+       RESULT CARD
+    ------------------------------------------------- */
+
+    .result-card {
+        background: #f8fbff;
+        border: 1px solid #cfe3ff;
+        border-radius: 16px;
+        padding: 25px;
+        margin-top: 15px;
+        margin-bottom: 20px;
+    }
+
+    .result-label {
+        color: #64748b;
+        font-size: 14px;
+        margin-bottom: 7px;
+    }
+
+    .result-name {
+        font-size: 29px;
+        font-weight: 750;
+        line-height: 1.25;
+        margin-bottom: 8px;
+    }
+
+    .result-confidence {
+        font-size: 17px;
+        color: #475569;
+    }
+
+
+    /* -------------------------------------------------
+       SECTION TITLES
+    ------------------------------------------------- */
+
+    .section-title {
+        font-size: 24px;
+        font-weight: 700;
+        margin-top: 25px;
+        margin-bottom: 12px;
+    }
+
+
+    /* -------------------------------------------------
+       FOOTER
+    ------------------------------------------------- */
+
+    .footer-note {
+        color: #6b7280;
+        font-size: 13px;
+        line-height: 1.6;
+        text-align: center;
+        margin-top: 30px;
+    }
+
+
+    /* -------------------------------------------------
+       UPLOADER
+    ------------------------------------------------- */
+
+    [data-testid="stFileUploader"] {
+        border-radius: 14px;
     }
 
     </style>
@@ -136,46 +213,113 @@ def load_model():
 # =========================================================
 
 st.markdown(
-    '<div class="title">Nail Disease AI Classifier</div>',
-    unsafe_allow_html=True
-)
+    """
+    <div class="hero">
 
-st.markdown(
-    '<div class="subtitle">'
-    'Upload a nail image and let the trained CNN model analyze it.'
-    '</div>',
+        <div class="hero-title">
+            NailCare AI
+        </div>
+
+        <div class="hero-subtitle">
+            AI-powered nail image classification using a
+            trained Convolutional Neural Network.
+            Upload a nail image to receive a model prediction.
+        </div>
+
+    </div>
+    """,
     unsafe_allow_html=True
 )
 
 
 # =========================================================
-# MODEL ACCURACY
+# MODEL INFORMATION
 # =========================================================
 
-if MODEL_ACCURACY > 0:
+col1, col2, col3 = st.columns(3)
+
+with col1:
 
     st.markdown(
         f"""
-        <div class="accuracy-box">
+        <div class="info-card">
 
-            <strong>Model Test Accuracy</strong>
+            <div class="info-label">
+                Model
+            </div>
 
-            <br><br>
-
-            <span style="font-size:30px;font-weight:700;">
-                {MODEL_ACCURACY * 100:.2f}%
-            </span>
+            <div class="info-value">
+                Simple CNN
+            </div>
 
         </div>
         """,
         unsafe_allow_html=True
     )
 
-else:
+
+with col2:
+
+    st.markdown(
+        f"""
+        <div class="info-card">
+
+            <div class="info-label">
+                Image Size
+            </div>
+
+            <div class="info-value">
+                224 × 224
+            </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+with col3:
+
+    accuracy_text = (
+        f"{MODEL_ACCURACY * 100:.2f}%"
+        if MODEL_ACCURACY > 0
+        else "Add Accuracy"
+    )
+
+    st.markdown(
+        f"""
+        <div class="info-card">
+
+            <div class="info-label">
+                Test Accuracy
+            </div>
+
+            <div class="info-value">
+                {accuracy_text}
+            </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+# =========================================================
+# SPACING
+# =========================================================
+
+st.write("")
+
+
+# =========================================================
+# MODEL ACCURACY MESSAGE
+# =========================================================
+
+if MODEL_ACCURACY <= 0:
 
     st.info(
-        "Enter your actual test accuracy in MODEL_ACCURACY "
-        "inside app.py to display it here."
+        "Set MODEL_ACCURACY in app.py to your actual "
+        "Simple CNN test accuracy."
     )
 
 
@@ -183,7 +327,14 @@ else:
 # IMAGE UPLOAD
 # =========================================================
 
-st.subheader("Upload Nail Image")
+st.markdown(
+    '<div class="section-title">Upload a Nail Image</div>',
+    unsafe_allow_html=True
+)
+
+st.write(
+    "Upload a JPG, JPEG, PNG, or WEBP image of a nail."
+)
 
 uploaded_file = st.file_uploader(
     "Choose an image",
@@ -192,7 +343,8 @@ uploaded_file = st.file_uploader(
         "jpeg",
         "png",
         "webp"
-    ]
+    ],
+    label_visibility="collapsed"
 )
 
 
@@ -205,7 +357,7 @@ if uploaded_file is not None:
     try:
 
         # -------------------------------------------------
-        # OPEN USER IMAGE
+        # LOAD USER IMAGE
         # -------------------------------------------------
 
         image = Image.open(
@@ -214,21 +366,36 @@ if uploaded_file is not None:
 
 
         # -------------------------------------------------
-        # DISPLAY ORIGINAL IMAGE
+        # DISPLAY IMAGE
         # -------------------------------------------------
 
-        st.subheader("Uploaded Image")
+        st.markdown(
+            '<div class="section-title">Image Analysis</div>',
+            unsafe_allow_html=True
+        )
 
-        st.image(
-            image,
-            caption="Your uploaded nail image",
-            width=400
+        image_col, result_col = st.columns(
+            [1, 1],
+            gap="large"
         )
 
 
-        # -------------------------------------------------
+        # =================================================
+        # IMAGE COLUMN
+        # =================================================
+
+        with image_col:
+
+            st.image(
+                image,
+                caption="Uploaded nail image",
+                use_container_width=True
+            )
+
+
+        # =================================================
         # PREPROCESS IMAGE
-        # -------------------------------------------------
+        # =================================================
 
         image_resized = image.resize(
             (IMG_SIZE, IMG_SIZE)
@@ -236,9 +403,7 @@ if uploaded_file is not None:
 
         image_array = np.array(
             image_resized
-        )
-
-        image_array = image_array.astype(
+        ).astype(
             "float32"
         ) / 255.0
 
@@ -248,16 +413,16 @@ if uploaded_file is not None:
         )
 
 
-        # -------------------------------------------------
+        # =================================================
         # LOAD MODEL
-        # -------------------------------------------------
+        # =================================================
 
         model = load_model()
 
 
-        # -------------------------------------------------
+        # =================================================
         # MAKE PREDICTION
-        # -------------------------------------------------
+        # =================================================
 
         predictions = model.predict(
             image_array,
@@ -265,112 +430,215 @@ if uploaded_file is not None:
         )[0]
 
 
-        # -------------------------------------------------
-        # FIND PREDICTED CLASS
-        # -------------------------------------------------
+        # =================================================
+        # GET RESULT
+        # =================================================
 
-        predicted_index = np.argmax(
-            predictions
+        predicted_index = int(
+            np.argmax(predictions)
         )
 
         predicted_class = CLASS_NAMES[
             predicted_index
         ]
 
-        confidence = (
-            predictions[predicted_index] * 100
+        confidence = float(
+            predictions[predicted_index]
+        )
+
+        confidence_percent = (
+            confidence * 100
         )
 
 
-        # -------------------------------------------------
-        # DISPLAY RESULT
-        # -------------------------------------------------
-# =========================================================
-# DISPLAY RESULT
-# =========================================================
+        # =================================================
+        # RESULT COLUMN
+        # =================================================
 
-st.subheader("Prediction Result")
+        with result_col:
 
-col1, col2 = st.columns(2)
+            st.markdown(
+                """
+                <div class="section-title">
+                    Prediction Result
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-with col1:
-    st.metric(
-        label="Predicted Condition",
-        value=predicted_class
-    )
+            st.markdown(
+                f"""
+                <div class="result-card">
 
-with col2:
-    st.metric(
-        label="Confidence",
-        value=f"{confidence:.2f}%"
-    )
+                    <div class="result-label">
+                        Predicted Condition
+                    </div>
 
-st.progress(
-    float(predictions[predicted_index])
-)
+                    <div class="result-name">
+                        {predicted_class}
+                    </div>
 
-        # -------------------------------------------------
-        # ALL PREDICTION PROBABILITIES
-        # -------------------------------------------------
+                    <div class="result-confidence">
+                        Model confidence:
+                        <strong>
+                            {confidence_percent:.2f}%
+                        </strong>
+                    </div>
 
-        st.subheader(
-            "Prediction Probabilities"
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            st.progress(
+                confidence
+            )
+
+
+        # =================================================
+        # PROBABILITY RESULTS
+        # =================================================
+
+        st.markdown(
+            '<div class="section-title">Class Probabilities</div>',
+            unsafe_allow_html=True
         )
+
+        probability_data = []
 
         for i, class_name in enumerate(
             CLASS_NAMES
         ):
 
+            probability_data.append(
+                {
+                    "Condition": class_name,
+                    "Probability": predictions[i] * 100
+                }
+            )
+
+        probability_df = pd.DataFrame(
+            probability_data
+        )
+
+        probability_df = probability_df.sort_values(
+            by="Probability",
+            ascending=False
+        )
+
+        for _, row in probability_df.iterrows():
+
+            class_name = row["Condition"]
+
             probability = float(
-                predictions[i]
+                row["Probability"]
             )
 
             st.write(
                 f"**{class_name}** — "
-                f"{probability * 100:.2f}%"
+                f"{probability:.2f}%"
             )
 
             st.progress(
-                probability
+                probability / 100
             )
 
 
-        # -------------------------------------------------
-        # IMAGE PROCESSING INFORMATION
-        # -------------------------------------------------
+        # =================================================
+        # PROCESSING DETAILS
+        # =================================================
 
-        st.markdown(
-            """
-            <div class="info-box">
+        with st.expander(
+            "View image processing details"
+        ):
 
-            <strong>Image Processing</strong>
+            st.write(
+                "The uploaded image is processed using "
+                "the same basic preprocessing pipeline used "
+                "for the Simple CNN."
+            )
 
-            <br><br>
+            st.write(
+                "Original image size:",
+                image.size
+            )
 
-            Your uploaded image is automatically:
+            st.write(
+                "Model input size:",
+                "224 × 224"
+            )
 
-            <br>
-            • Converted to RGB
-            <br>
-            • Resized to 224 × 224 pixels
-            <br>
-            • Normalized to values between 0 and 1
-            <br>
-            • Sent to the trained Simple CNN model
+            st.write(
+                "Color format:",
+                "RGB"
+            )
 
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+            st.write(
+                "Pixel normalization:",
+                "0–255 → 0–1"
+            )
 
+
+    # =====================================================
+    # ERROR HANDLING
+    # =====================================================
 
     except Exception as e:
 
         st.error(
-            "The model could not be loaded or prediction failed."
+            "The model could not be loaded or the image "
+            "could not be processed."
         )
 
         st.exception(e)
+
+
+# =========================================================
+# HOW IT WORKS
+# =========================================================
+
+st.divider()
+
+st.markdown(
+    '<div class="section-title">How It Works</div>',
+    unsafe_allow_html=True
+)
+
+step1, step2, step3 = st.columns(3)
+
+with step1:
+
+    st.markdown(
+        """
+        **1. Upload**
+
+        Upload your own nail image using
+        the image uploader.
+        """
+    )
+
+with step2:
+
+    st.markdown(
+        """
+        **2. Preprocess**
+
+        The image is converted to RGB,
+        resized to 224 × 224, and normalized.
+        """
+    )
+
+with step3:
+
+    st.markdown(
+        """
+        **3. Predict**
+
+        The trained Simple CNN analyzes
+        the image and returns probabilities
+        for six classes.
+        """
+    )
 
 
 # =========================================================
@@ -379,8 +647,18 @@ st.progress(
 
 st.divider()
 
-st.caption(
-    "This application is an AI/ML demonstration and is not "
-    "a medical diagnosis. Predictions should not replace "
-    "evaluation by a qualified healthcare professional."
+st.markdown(
+    """
+    <div class="footer-note">
+
+    <strong>Important:</strong>
+    This application is an AI/ML project for
+    educational and demonstration purposes.
+    It is not a medical diagnostic tool.
+    Model predictions should not be used as a
+    substitute for professional medical evaluation.
+
+    </div>
+    """,
+    unsafe_allow_html=True
 )
