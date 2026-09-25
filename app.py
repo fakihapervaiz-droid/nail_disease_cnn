@@ -1,113 +1,140 @@
 import streamlit as st
 import tensorflow as tf
 import numpy as np
-import pickle
 from PIL import Image
-import os
+
 
 # =========================================================
 # PAGE CONFIG
 # =========================================================
+
 st.set_page_config(
     page_title="Nail Disease AI Classifier",
     page_icon="🩺",
     layout="centered"
 )
 
+
 # =========================================================
 # SETTINGS
 # =========================================================
+
 MODEL_PATH = "nail_disease_simple_cnn.keras"
-CLASS_NAMES_PATH = "class_names.pkl"
 
 IMG_SIZE = 224
 
-# IMPORTANT:
-# Replace this with the actual test accuracy from your model
+# ---------------------------------------------------------
+# PUT YOUR ACTUAL TEST ACCURACY HERE
+# Example:
+# If your test accuracy is 82.45%, write 0.8245
+# ---------------------------------------------------------
+
 MODEL_ACCURACY = 0.00
+
+
+# =========================================================
+# CLASS NAMES
+# =========================================================
+
+CLASS_NAMES = [
+    "Acral_Lentiginous_Melanoma",
+    "Healthy_Nail",
+    "Onychogryphosis",
+    "blue_finger",
+    "clubbing",
+    "pitting"
+]
 
 
 # =========================================================
 # CUSTOM CSS
 # =========================================================
-st.markdown("""
-<style>
 
-.main {
-    padding-top: 2rem;
-}
+st.markdown(
+    """
+    <style>
 
-.title {
-    text-align: center;
-    font-size: 38px;
-    font-weight: 700;
-    margin-bottom: 5px;
-}
+    .main {
+        padding-top: 2rem;
+    }
 
-.subtitle {
-    text-align: center;
-    color: #666;
-    font-size: 17px;
-    margin-bottom: 30px;
-}
+    .title {
+        text-align: center;
+        font-size: 38px;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
 
-.prediction-box {
-    padding: 20px;
-    border-radius: 12px;
-    background-color: #eef6ff;
-    border: 1px solid #b9d9ff;
-    text-align: center;
-    margin-top: 20px;
-}
+    .subtitle {
+        text-align: center;
+        color: #666;
+        font-size: 17px;
+        margin-bottom: 30px;
+    }
 
-.prediction-title {
-    font-size: 15px;
-    color: #555;
-}
+    .prediction-box {
+        padding: 22px;
+        border-radius: 12px;
+        background-color: #eef6ff;
+        border: 1px solid #b9d9ff;
+        text-align: center;
+        margin-top: 20px;
+        margin-bottom: 25px;
+    }
 
-.prediction-name {
-    font-size: 30px;
-    font-weight: 700;
-    margin: 8px 0;
-}
+    .prediction-title {
+        font-size: 15px;
+        color: #555;
+    }
 
-.confidence {
-    font-size: 18px;
-    font-weight: 600;
-}
+    .prediction-name {
+        font-size: 30px;
+        font-weight: 700;
+        margin: 8px 0;
+    }
 
-.accuracy-box {
-    padding: 15px;
-    border-radius: 10px;
-    background-color: #f5f5f5;
-    text-align: center;
-    margin-bottom: 20px;
-}
+    .confidence {
+        font-size: 18px;
+        font-weight: 600;
+    }
 
-</style>
-""", unsafe_allow_html=True)
+    .accuracy-box {
+        padding: 18px;
+        border-radius: 10px;
+        background-color: #f5f5f5;
+        text-align: center;
+        margin-bottom: 25px;
+    }
+
+    .info-box {
+        padding: 15px;
+        border-radius: 10px;
+        background-color: #f8f8f8;
+        margin-top: 20px;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 
 # =========================================================
 # LOAD MODEL
 # =========================================================
+
 @st.cache_resource
 def load_model():
-    return tf.keras.models.load_model(MODEL_PATH)
+
+    return tf.keras.models.load_model(
+        MODEL_PATH
+    )
 
 
 # =========================================================
-# LOAD CLASS NAMES
+# HEADER
 # =========================================================
-@st.cache_resource
-def load_class_names():
-    with open(CLASS_NAMES_PATH, "rb") as f:
-        return pickle.load(f)
 
-
-# =========================================================
-# MAIN UI
-# =========================================================
 st.markdown(
     '<div class="title">Nail Disease AI Classifier</div>',
     unsafe_allow_html=True
@@ -124,84 +151,141 @@ st.markdown(
 # =========================================================
 # MODEL ACCURACY
 # =========================================================
+
 if MODEL_ACCURACY > 0:
+
     st.markdown(
         f"""
         <div class="accuracy-box">
-            <strong>Model Test Accuracy</strong><br>
-            <span style="font-size:28px;">
+
+            <strong>Model Test Accuracy</strong>
+
+            <br><br>
+
+            <span style="font-size:30px;font-weight:700;">
                 {MODEL_ACCURACY * 100:.2f}%
             </span>
+
         </div>
         """,
         unsafe_allow_html=True
     )
+
 else:
+
     st.info(
-        "Set MODEL_ACCURACY in app.py to your actual test accuracy "
-        "to display it here."
+        "Enter your actual test accuracy in MODEL_ACCURACY "
+        "inside app.py to display it here."
     )
 
 
 # =========================================================
-# FILE UPLOADER
+# IMAGE UPLOAD
 # =========================================================
+
+st.subheader("Upload Nail Image")
+
 uploaded_file = st.file_uploader(
-    "Upload a nail image",
-    type=["jpg", "jpeg", "png", "webp"]
+    "Choose an image",
+    type=[
+        "jpg",
+        "jpeg",
+        "png",
+        "webp"
+    ]
 )
 
 
 # =========================================================
 # PREDICTION
 # =========================================================
+
 if uploaded_file is not None:
 
-    image = Image.open(uploaded_file).convert("RGB")
-
-    st.subheader("Uploaded Image")
-
-    st.image(
-        image,
-        caption="Your uploaded nail image",
-        width=400
-    )
-
-    # ---------------------------------------------
-    # PREPROCESS IMAGE
-    # ---------------------------------------------
-    image_resized = image.resize((IMG_SIZE, IMG_SIZE))
-
-    image_array = np.array(image_resized)
-
-    # Same preprocessing used by Simple CNN
-    image_array = image_array.astype("float32") / 255.0
-
-    # Add batch dimension
-    image_array = np.expand_dims(image_array, axis=0)
-
-    # ---------------------------------------------
-    # LOAD MODEL
-    # ---------------------------------------------
     try:
-        model = load_model()
-        class_names = load_class_names()
 
-        # ---------------------------------------------
-        # PREDICTION
-        # ---------------------------------------------
+        # -------------------------------------------------
+        # OPEN USER IMAGE
+        # -------------------------------------------------
+
+        image = Image.open(
+            uploaded_file
+        ).convert("RGB")
+
+
+        # -------------------------------------------------
+        # DISPLAY ORIGINAL IMAGE
+        # -------------------------------------------------
+
+        st.subheader("Uploaded Image")
+
+        st.image(
+            image,
+            caption="Your uploaded nail image",
+            width=400
+        )
+
+
+        # -------------------------------------------------
+        # PREPROCESS IMAGE
+        # -------------------------------------------------
+
+        image_resized = image.resize(
+            (IMG_SIZE, IMG_SIZE)
+        )
+
+        image_array = np.array(
+            image_resized
+        )
+
+        image_array = image_array.astype(
+            "float32"
+        ) / 255.0
+
+        image_array = np.expand_dims(
+            image_array,
+            axis=0
+        )
+
+
+        # -------------------------------------------------
+        # LOAD MODEL
+        # -------------------------------------------------
+
+        model = load_model()
+
+
+        # -------------------------------------------------
+        # MAKE PREDICTION
+        # -------------------------------------------------
+
         predictions = model.predict(
             image_array,
             verbose=0
         )[0]
 
-        predicted_index = np.argmax(predictions)
-        predicted_class = class_names[predicted_index]
-        confidence = predictions[predicted_index] * 100
 
-        # ---------------------------------------------
-        # RESULT
-        # ---------------------------------------------
+        # -------------------------------------------------
+        # FIND PREDICTED CLASS
+        # -------------------------------------------------
+
+        predicted_index = np.argmax(
+            predictions
+        )
+
+        predicted_class = CLASS_NAMES[
+            predicted_index
+        ]
+
+        confidence = (
+            predictions[predicted_index] * 100
+        )
+
+
+        # -------------------------------------------------
+        # DISPLAY RESULT
+        # -------------------------------------------------
+
         st.markdown(
             f"""
             <div class="prediction-box">
@@ -223,21 +307,61 @@ if uploaded_file is not None:
             unsafe_allow_html=True
         )
 
-        # ---------------------------------------------
-        # ALL CLASS PROBABILITIES
-        # ---------------------------------------------
-        st.subheader("Prediction Probabilities")
 
-        for i, class_name in enumerate(class_names):
+        # -------------------------------------------------
+        # ALL PREDICTION PROBABILITIES
+        # -------------------------------------------------
 
-            probability = float(predictions[i])
+        st.subheader(
+            "Prediction Probabilities"
+        )
+
+        for i, class_name in enumerate(
+            CLASS_NAMES
+        ):
+
+            probability = float(
+                predictions[i]
+            )
 
             st.write(
                 f"**{class_name}** — "
                 f"{probability * 100:.2f}%"
             )
 
-            st.progress(probability)
+            st.progress(
+                probability
+            )
+
+
+        # -------------------------------------------------
+        # IMAGE PROCESSING INFORMATION
+        # -------------------------------------------------
+
+        st.markdown(
+            """
+            <div class="info-box">
+
+            <strong>Image Processing</strong>
+
+            <br><br>
+
+            Your uploaded image is automatically:
+
+            <br>
+            • Converted to RGB
+            <br>
+            • Resized to 224 × 224 pixels
+            <br>
+            • Normalized to values between 0 and 1
+            <br>
+            • Sent to the trained Simple CNN model
+
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
 
     except Exception as e:
 
@@ -251,10 +375,11 @@ if uploaded_file is not None:
 # =========================================================
 # DISCLAIMER
 # =========================================================
+
 st.divider()
 
 st.caption(
-    "This application is an AI/ML demonstration and is not a "
-    "medical diagnosis. Predictions should not replace evaluation "
-    "by a qualified healthcare professional."
+    "This application is an AI/ML demonstration and is not "
+    "a medical diagnosis. Predictions should not replace "
+    "evaluation by a qualified healthcare professional."
 )
