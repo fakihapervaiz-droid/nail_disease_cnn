@@ -285,28 +285,29 @@ if uploaded_file is not None:
         # -------------------------------------------------
         # DISPLAY RESULT
         # -------------------------------------------------
+# =========================================================
+# DISPLAY RESULT
+# =========================================================
 
-        st.markdown(
-            f"""
-            <div class="prediction-box">
+st.subheader("Prediction Result")
 
-                <div class="prediction-title">
-                    Predicted Condition
-                </div>
+col1, col2 = st.columns(2)
 
-                <div class="prediction-name">
-                    {predicted_class}
-                </div>
+with col1:
+    st.metric(
+        label="Predicted Condition",
+        value=predicted_class
+    )
 
-                <div class="confidence">
-                    Confidence: {confidence:.2f}%
-                </div>
+with col2:
+    st.metric(
+        label="Confidence",
+        value=f"{confidence:.2f}%"
+    )
 
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
+st.progress(
+    float(predictions[predicted_index])
+)
 
         # -------------------------------------------------
         # ALL PREDICTION PROBABILITIES
